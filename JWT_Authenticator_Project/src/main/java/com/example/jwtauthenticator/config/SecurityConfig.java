@@ -56,7 +56,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .xssProtection().xssProtectionEnabled(true).and()
                     .httpStrictTransportSecurity().includeSubDomains(true).maxAgeInSeconds(31536000).and()
                     .and()
-                .authorizeRequests().antMatchers("/auth/register", "/auth/token", "/auth/login", "/auth/forward", "/auth/forgot-password", "/auth/reset-password", "/auth/refresh", "/auth/verify-email", "/auth/tfa/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .authorizeRequests().antMatchers("/auth/register", "/auth/token", "/auth/login", "/auth/forward", "/auth/forgot-password", "/auth/reset-password", "/auth/refresh", "/auth/verify-email", "/auth/tfa/**", "/auth/google", "/test/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated().and()
                 .exceptionHandling().and().sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
@@ -67,9 +67,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Allow all origins for now, restrict in production
+        // Allow specific origins for Google Sign-In
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",
+            "http://localhost:3001", 
+            "http://192.168.1.22:3000",
+            "https://accounts.google.com"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Tenant-Id"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Tenant-Id", "X-Forward-URL"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

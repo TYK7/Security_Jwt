@@ -14,9 +14,16 @@ Once the application is running, you can access the Swagger UI at:
 ### 🔐 Authentication Endpoints
 - **POST /auth/register** - Register a new user account
 - **POST /auth/login** - User login with credentials
+- **POST /auth/google** - Google OAuth2 sign-in with ID token
 - **POST /auth/token** - Generate JWT authentication tokens
 - **POST /auth/refresh** - Refresh JWT tokens
 - **GET /auth/verify-email** - Verify email address with token
+
+### 🔑 Two-Factor Authentication Endpoints
+- **POST /auth/tfa/setup** - Generate 2FA secret and QR code
+- **POST /auth/tfa/verify** - Verify TOTP code
+- **POST /auth/tfa/enable** - Enable 2FA for user
+- **POST /auth/tfa/disable** - Disable 2FA for user
 
 ### 📋 API Documentation Features
 - **Interactive Testing** - Try out endpoints directly from the UI
@@ -84,10 +91,11 @@ The API is organized into the following sections:
 
 ### Authentication
 - User registration and login
+- Google OAuth2 sign-in integration
 - JWT token management
 - Email verification
 - Password reset functionality
-- Two-factor authentication (2FA)
+- Two-factor authentication (2FA) with TOTP
 
 ### Security Features
 - Multi-tenant architecture
@@ -101,9 +109,11 @@ The API is organized into the following sections:
 Key data models documented in Swagger:
 - **RegisterRequest** - User registration data
 - **AuthRequest** - Login credentials
+- **GoogleSignInRequest** - Google ID token for OAuth2 sign-in
 - **AuthResponse** - JWT token response
 - **PasswordResetRequest** - Password reset data
 - **TfaRequest** - Two-factor authentication data
+- **TfaSetupResponse** - 2FA setup with secret and QR code
 
 ## Development
 

@@ -6,6 +6,7 @@ import com.example.jwtauthenticator.model.RegisterRequest;
 import com.example.jwtauthenticator.service.AuthService;
 import com.example.jwtauthenticator.service.PasswordResetService;
 import com.example.jwtauthenticator.service.TfaService;
+import com.example.jwtauthenticator.dto.GoogleSignInRequest;
 import com.example.jwtauthenticator.dto.PasswordResetRequest;
 import com.example.jwtauthenticator.dto.ResetPasswordConfirmRequest;
 import com.example.jwtauthenticator.dto.TfaRequest;
@@ -27,6 +28,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -90,6 +93,26 @@ public class AuthController {
         return ResponseEntity.ok(authResponse);
     }
 
+    @Operation(summary = "Google Sign-In", 
+               description = "Authenticate user using Google ID token and return JWT tokens")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Google Sign-In successful", 
+                        content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid Google ID token"),
+            @ApiResponse(responseCode = "500", description = "Google Sign-In service error")
+    })
+    @PostMapping("/google")
+    public ResponseEntity<?> googleSignIn(@Valid @RequestBody GoogleSignInRequest request) {
+        try {
+            AuthResponse authResponse = authService.googleSignIn(request);
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Google Sign-In failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody PasswordResetRequest request) {
         passwordResetService.createPasswordResetToken(request.getEmail());
@@ -127,6 +150,32 @@ public class AuthController {
     public ResponseEntity<?> disableTfa(@RequestParam String username) {
         tfaService.disableTfa(username);
         return ResponseEntity.ok("2FA disabled for user: " + username);
+    }
+
+    @GetMapping("/tfa/qr-code")
+    public ResponseEntity<byte[]> getTfaQrCode(@RequestParam String username) {
+        try {
+            byte[] qrCode = tfaService.generateQRCode(username);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "image/png")
+                    .body(qrCode);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/tfa/current-code")
+    public ResponseEntity<?> getCurrentTotpCode(@RequestParam String username) {
+        try {
+            int currentCode = tfaService.getCurrentTotpCode(username);
+            Map<String, String> response = new HashMap<>();
+            response.put("username", username);
+            response.put("currentCode", String.format("%06d", currentCode));
+            response.put("note", "This code changes every 30 seconds");
+            return ResponseEntity.ok().body(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @Operation(summary = "Verify email address", 

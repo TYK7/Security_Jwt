@@ -90,7 +90,37 @@ JwtUserDetailsService.loadUserByUsernameAndTenantId()
 JwtUtil.generateToken() & JwtUtil.generateRefreshToken()
     ↓
 4. Save refresh token to database
-5. Return AuthResponse with tokens
+5. Log login event to login_log table
+6. Return AuthResponse with tokens
+```
+
+### 4.1. Google Sign-In Flow
+```
+POST /auth/google
+    ↓
+AuthController.googleSignIn()
+    ↓
+AuthService.googleSignIn()
+    ↓
+1. Verify Google ID token
+    ↓
+GoogleTokenVerificationService.verifyIdToken()
+    ↓
+2. Extract user info from Google token
+3. Check if user exists by email
+    ↓
+If user exists:
+    - Update user info (profile picture, etc.)
+    - Set emailVerified = true
+    - Update refresh token
+If user doesn't exist:
+    - Create new user with emailVerified = true
+    - Generate unique username
+    - Set authProvider = GOOGLE
+    ↓
+4. Generate JWT tokens
+5. Log login event (method = GOOGLE)
+6. Return AuthResponse with tokens
 ```
 
 **JWT Token Structure:**
@@ -318,6 +348,7 @@ AuthController.forwardRequest()
 | POST | `/auth/register` | User registration | No |
 | GET | `/auth/verify-email` | Email verification | No |
 | POST | `/auth/login` | User login | No |
+| POST | `/auth/google` | Google OAuth2 sign-in | No |
 | POST | `/auth/token` | Generate token | No |
 | POST | `/auth/refresh` | Refresh token | No |
 
@@ -348,7 +379,8 @@ AuthController.forwardRequest()
 ### Users Table
 ```sql
 CREATE TABLE users (
-    user_id BINARY(16) PRIMARY KEY,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BINARY(16) UNIQUE NOT NULL,
     username VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -361,7 +393,22 @@ CREATE TABLE users (
     tfa_enabled BOOLEAN DEFAULT FALSE,
     tenant_id VARCHAR(255),
     email_verified BOOLEAN DEFAULT FALSE,
-    verification_token VARCHAR(255)
+    verification_token VARCHAR(255),
+    auth_provider VARCHAR(50) DEFAULT 'LOCAL',
+    profile_picture_url VARCHAR(500)
+);
+```
+
+### Login Log Table
+```sql
+CREATE TABLE login_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255),
+    login_method VARCHAR(50) NOT NULL,
+    login_status VARCHAR(50) NOT NULL,
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    details TEXT
 );
 ```
 
