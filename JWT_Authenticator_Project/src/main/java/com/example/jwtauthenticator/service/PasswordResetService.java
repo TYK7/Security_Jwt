@@ -34,7 +34,7 @@ public class PasswordResetService {
         passwordResetTokenRepository.save(myToken);
 
         // Send email
-        String resetLink = "http://localhost:8080/reset-password?token=" + token; // TODO: Configure base URL
+        String resetLink = "http://192.168.1.22:8080/reset-password?token=" + token; // TODO: Configure base URL
         emailService.sendEmail(user.getEmail(), "Password Reset Request", "To reset your password, click the link: " + resetLink);
     }
 

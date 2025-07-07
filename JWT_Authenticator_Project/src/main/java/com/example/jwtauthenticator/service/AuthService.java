@@ -1,11 +1,15 @@
 package com.example.jwtauthenticator.service;
 
+import com.example.jwtauthenticator.dto.GoogleSignInRequest;
+import com.example.jwtauthenticator.dto.GoogleUserInfo;
+import com.example.jwtauthenticator.entity.LoginLog;
 import com.example.jwtauthenticator.entity.User;
+import com.example.jwtauthenticator.entity.User.AuthProvider;
 import com.example.jwtauthenticator.entity.User.Role;
 import com.example.jwtauthenticator.model.AuthRequest;
 import com.example.jwtauthenticator.model.AuthResponse;
-
 import com.example.jwtauthenticator.model.RegisterRequest;
+import com.example.jwtauthenticator.repository.LoginLogRepository;
 import com.example.jwtauthenticator.repository.UserRepository;
 import com.example.jwtauthenticator.security.JwtUserDetailsService;
 import com.example.jwtauthenticator.util.JwtUtil;
@@ -19,6 +23,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,6 +46,12 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private GoogleTokenVerificationService googleTokenVerificationService;
+
+    @Autowired
+    private LoginLogRepository loginLogRepository;
 
     public String registerUser(RegisterRequest request) {
         if (userRepository.existsByUsernameAndTenantId(request.getUsername(), request.getTenantId())) {
@@ -89,6 +100,9 @@ public class AuthService {
 
         user.setRefreshToken(refreshToken);
         userRepository.save(user);
+
+        // Log successful password login
+        logLogin(user, "PASSWORD", "SUCCESS", "Password login successful");
 
         return new AuthResponse(token, refreshToken);
     }
@@ -144,6 +158,115 @@ public class AuthService {
             
         } catch (BadCredentialsException e) {
             throw new Exception("INVALID_CREDENTIALS", e);
+        }
+    }
+
+    public AuthResponse googleSignIn(GoogleSignInRequest request) throws Exception {
+        try {
+            // Verify Google ID token and extract user info
+            GoogleUserInfo googleUserInfo = googleTokenVerificationService.verifyToken(request.getIdToken());
+            
+            // Check if user already exists
+            Optional<User> existingUserOpt = userRepository.findByEmail(googleUserInfo.getEmail());
+            User existingUser = existingUserOpt.orElse(null);
+            
+            if (existingUser != null) {
+                // User exists - update profile picture and email verification if needed
+                boolean needsUpdate = false;
+                
+                if (googleUserInfo.getPicture() != null && 
+                    !googleUserInfo.getPicture().equals(existingUser.getProfilePictureUrl())) {
+                    existingUser.setProfilePictureUrl(googleUserInfo.getPicture());
+                    needsUpdate = true;
+                }
+                
+                // Ensure email is verified for Google users
+                if (!existingUser.isEmailVerified()) {
+                    existingUser.setEmailVerified(true);
+                    needsUpdate = true;
+                }
+                
+                if (needsUpdate) {
+                    userRepository.save(existingUser);
+                }
+                
+                // Log successful Google login for existing user
+                logLogin(existingUser, "GOOGLE", "SUCCESS", "Google Sign-In successful for existing user");
+                
+                // Generate JWT token for existing user
+                return generateJwtResponse(existingUser);
+            } else {
+                // User doesn't exist - create new user
+                User newUser = createGoogleUser(googleUserInfo);
+                userRepository.save(newUser);
+                
+                // Log successful Google registration and login for new user
+                logLogin(newUser, "GOOGLE", "SUCCESS", "Google Sign-In successful - new user created");
+                
+                // Generate JWT token for new user
+                return generateJwtResponse(newUser);
+            }
+            
+        } catch (Exception e) {
+            throw new Exception("Google Sign-In failed: " + e.getMessage(), e);
+        }
+    }
+
+    private User createGoogleUser(GoogleUserInfo googleUserInfo) {
+        // Generate a unique username from email
+        String baseUsername = googleUserInfo.getEmail().split("@")[0];
+        String username = generateUniqueUsername(baseUsername);
+        
+        return User.builder()
+                .username(username)
+                .email(googleUserInfo.getEmail())
+                .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Random password for Google users
+                .role(Role.USER)
+                .authProvider(AuthProvider.GOOGLE)
+                .emailVerified(true) // Always true for Google users since Google has already verified the email
+                .profilePictureUrl(googleUserInfo.getPicture())
+                .tenantId("default") // You can modify this based on your tenant logic
+                .build();
+    }
+
+    private String generateUniqueUsername(String baseUsername) {
+        String username = baseUsername;
+        int counter = 1;
+        
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + counter;
+            counter++;
+        }
+        
+        return username;
+    }
+
+    private AuthResponse generateJwtResponse(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsernameAndTenantId(user.getUsername(), user.getTenantId());
+        String accessToken = jwtUtil.generateToken(userDetails, user.getUserId().toString());
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails, user.getUserId().toString());
+        
+        // Save refresh token
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+        
+        return new AuthResponse(accessToken, refreshToken);
+    }
+
+    private void logLogin(User user, String loginMethod, String loginStatus, String details) {
+        try {
+            LoginLog loginLog = LoginLog.builder()
+                    .userId(user.getUserId())
+                    .username(user.getUsername())
+                    .loginMethod(loginMethod)
+                    .loginStatus(loginStatus)
+                    .details(details)
+                    .build();
+            
+            loginLogRepository.save(loginLog);
+            System.out.println("LOGIN_LOG: " + user.getUsername() + " - " + loginMethod + " - " + loginStatus);
+        } catch (Exception e) {
+            System.err.println("Failed to log login event: " + e.getMessage());
         }
     }
 }

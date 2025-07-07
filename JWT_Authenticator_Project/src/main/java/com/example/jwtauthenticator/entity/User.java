@@ -69,6 +69,13 @@ public class User {
     @Column(name = "verification_token")
     private String verificationToken;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    private AuthProvider authProvider;
+
+    @Column(name = "profile_picture_url")
+    private String profilePictureUrl;
+
     @PrePersist
     protected void onCreate() {
         if (userId == null) {
@@ -76,7 +83,13 @@ public class User {
         }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        emailVerified = false; // Default to false on creation
+        // Only set emailVerified to false if it hasn't been explicitly set
+        // This allows Google users to have emailVerified = true
+        if (authProvider == null) {
+            authProvider = AuthProvider.LOCAL; // Default to local auth
+            emailVerified = false; // Default to false only for local auth
+        }
+        // For Google users, emailVerified should already be set to true by the builder
     }
 
     @PreUpdate
@@ -87,5 +100,10 @@ public class User {
     public enum Role {
         USER,
         ADMIN
+    }
+
+    public enum AuthProvider {
+        LOCAL,
+        GOOGLE
     }
 }

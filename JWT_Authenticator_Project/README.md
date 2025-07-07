@@ -9,6 +9,7 @@ This project implements a JWT-based authentication and authorization microservic
 *   `POST /auth/register`: Register a new user.
 *   `POST /auth/token`: Validate user credentials and return a JWT access token.
 *   `POST /auth/login`: Authenticate user, then internally call `/auth/token`, and return the token.
+*   `POST /auth/google`: Authenticate user with Google OAuth2 ID token.
 *   `POST /auth/forward`: After successful login, forward the request to a configurable external/internal URL.
 *   `GET /api/protected`: A secured endpoint accessible only with a valid JWT.
 
@@ -20,6 +21,9 @@ This project implements a JWT-based authentication and authorization microservic
 *   `email` (with format validation)
 *   `location` (city, state, or general string)
 *   `role` (USER, ADMIN)
+*   `authProvider` (LOCAL, GOOGLE)
+*   `emailVerified` (boolean)
+*   `profilePictureUrl` (for Google users)
 
 ## Technical & Security Features
 
@@ -36,9 +40,10 @@ This project implements a JWT-based authentication and authorization microservic
 *   Refresh Token Support
 *   Email Verification during registration
 *   Password Reset via email with token
-*   Two-Factor Authentication (2FA)
+*   Two-Factor Authentication (2FA) with TOTP
+*   Google OAuth2 Sign-In Integration
 *   Multi-Tenancy (basic discriminator field or schema separation)
-*   Audit Logging
+*   Audit Logging with Login Tracking
 
 ## Build & Test
 
@@ -50,7 +55,9 @@ This project implements a JWT-based authentication and authorization microservic
 ## Extras
 
 *   Swagger/OpenAPI documentation.
-*   Postman collection or curl test samples.
+*   Postman collection with comprehensive API testing.
+*   Google OAuth2 integration with demo page.
+*   Complete API testing guide and documentation.
 
 ## Setup Instructions
 
@@ -93,6 +100,11 @@ Access the API documentation at: `http://localhost:8080/swagger-ui.html`
     curl -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{"username": "testuser", "password": "password"}'
     ```
 
+*   **Google Sign-In**:
+    ```bash
+    curl -X POST http://localhost:8080/auth/google -H "Content-Type: application/json" -d '{"idToken": "YOUR_GOOGLE_ID_TOKEN"}'
+    ```
+
 *   **Access Protected Endpoint** (replace `YOUR_ACCESS_TOKEN` with the token obtained from login):
     ```bash
     curl -X GET http://localhost:8080/api/protected -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -113,19 +125,24 @@ Access the API documentation at: `http://localhost:8080/swagger-ui.html`
     curl -X POST "http://localhost:8080/auth/reset-password?token=YOUR_RESET_TOKEN" -H "Content-Type: application/json" -d '{"newPassword": "new_password"}'
     ```
 
-*   **Enable 2FA**:
+*   **Setup 2FA**:
     ```bash
-    curl -X POST http://localhost:8080/auth/2fa/enable -H "Content-Type: application/json" -d '{"username": "testuser"}'
+    curl -X POST "http://localhost:8080/auth/tfa/setup?username=testuser"
     ```
 
-*   **Verify 2FA**:
+*   **Verify 2FA Code**:
     ```bash
-    curl -X POST http://localhost:8080/auth/2fa/verify -H "Content-Type: application/json" -d '{"username": "testuser", "code": "YOUR_2FA_CODE"}'
+    curl -X POST http://localhost:8080/auth/tfa/verify -H "Content-Type: application/json" -d '{"username": "testuser", "code": "123456"}'
+    ```
+
+*   **Enable 2FA**:
+    ```bash
+    curl -X POST "http://localhost:8080/auth/tfa/enable?username=testuser"
     ```
 
 *   **Disable 2FA**:
     ```bash
-    curl -X POST http://localhost:8080/auth/2fa/disable -H "Content-Type: application/json" -d '{"username": "testuser"}'
+    curl -X POST "http://localhost:8080/auth/tfa/disable?username=testuser"
     ```
 
 *   **Forward Request** (replace `YOUR_ACCESS_TOKEN` and `YOUR_USER_ID`):
@@ -142,10 +159,11 @@ The application uses an in-memory H2 database by default. You can configure othe
 1.  **Registration (`/auth/register`)**: A new user registers with username, password, email, and location. An email verification token is sent to the provided email address.
 2.  **Email Verification (`/auth/verify-email`)**: The user clicks the link in the email to verify their account.
 3.  **Login (`/auth/login`)**: The user provides credentials. If valid, an access token (short-lived) and a refresh token (long-lived) are returned.
-4.  **Access Protected Resources (`/api/protected`)**: The access token is sent in the `Authorization` header (`Bearer <token>`) to access protected endpoints.
-5.  **Token Refresh (`/auth/refresh`)**: When the access token expires, the refresh token can be used to obtain a new access token and a new refresh token.
-6.  **Password Reset (`/auth/forgot-password`, `/auth/reset-password`)**: Users can request a password reset via email. A token is sent to their email, which can then be used to set a new password.
-7.  **Two-Factor Authentication (`/auth/2fa/enable`, `/auth/2fa/verify`, `/auth/2fa/disable`)**: Users can enable 2FA for an added layer of security. During login, if 2FA is enabled, a separate verification step is required.
+4.  **Google Sign-In (`/auth/google`)**: Users can sign in with their Google account using an ID token. Google users have their email automatically verified.
+5.  **Access Protected Resources (`/api/protected`)**: The access token is sent in the `Authorization` header (`Bearer <token>`) to access protected endpoints.
+6.  **Token Refresh (`/auth/refresh`)**: When the access token expires, the refresh token can be used to obtain a new access token and a new refresh token.
+7.  **Password Reset (`/auth/forgot-password`, `/auth/reset-password`)**: Users can request a password reset via email. A token is sent to their email, which can then be used to set a new password.
+8.  **Two-Factor Authentication (`/auth/tfa/setup`, `/auth/tfa/verify`, `/auth/tfa/enable`, `/auth/tfa/disable`)**: Users can enable 2FA for an added layer of security. During login, if 2FA is enabled, a separate verification step is required.
 
 ## Forwarding Logic with RestTemplate/WebClient
 
@@ -154,3 +172,25 @@ The `/auth/forward` endpoint demonstrates how to forward requests to another ser
 ## Reusability as an Auth Module
 
 This project is designed to be reusable as an authentication and authorization module in other microservices. You can include it as a dependency in your other Spring Boot projects.
+
+## 📚 Documentation
+
+### Core Documentation
+- **README.md** - Main project documentation
+- **EXECUTION_FLOW_GUIDE.md** - Complete execution flow and architecture
+- **API_TESTING_GUIDE.md** - Comprehensive API testing guide
+- **SWAGGER_README.md** - Swagger/OpenAPI documentation guide
+
+### Google OAuth2 Integration
+- **GOOGLE_OAUTH_SETUP.md** - Google OAuth2 setup and configuration
+- **GOOGLE_SIGNIN_POSTMAN_REQUESTS.json** - Additional Postman requests for Google Sign-In
+
+### API Testing
+- **JWT_Authenticator_Postman_Collection.json** - Main Postman collection
+- **JWT_Authenticator_Environment.json** - Postman environment variables
+- **UPDATE_POSTMAN_COLLECTION.md** - Instructions to update Postman collection
+
+### Quick Links
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Google Sign-In Demo**: http://localhost:8080/test/google-signin-demo
+- **Health Check**: http://localhost:8080/actuator/health
