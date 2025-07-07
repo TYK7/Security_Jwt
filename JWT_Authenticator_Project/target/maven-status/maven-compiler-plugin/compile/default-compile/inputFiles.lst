@@ -1,5 +1,7 @@
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\service\EmailService.java
+d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\repository\LoginLogRepository.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\dto\EmailVerificationRequest.java
+d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\service\GoogleTokenVerificationService.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\config\AppConfig.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\config\SwaggerConfig.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\service\PasswordResetService.java
@@ -13,13 +15,17 @@ d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\service\
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\aspect\AuditAspect.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\security\JwtRequestFilter.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\controller\ProtectedController.java
+d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\controller\TestController.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\repository\PasswordResetTokenRepository.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\service\TfaService.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\util\JwtUtil.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\config\SecurityConfig.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\dto\TfaRequest.java
+d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\dto\GoogleSignInRequest.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\security\JwtUserDetailsService.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\model\AuthResponse.java
+d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\entity\LoginLog.java
+d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\dto\GoogleUserInfo.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\entity\User.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\dto\PasswordResetRequest.java
 d:\JWT_Authenticator_Project\src\main\java\com\example\jwtauthenticator\exception\GlobalExceptionHandler.java
